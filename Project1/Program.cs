@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
@@ -10,7 +10,7 @@ class PatientVisit
     public int Id { get; set; }
     public string PatientName { get; set; }
     public DateTime VisitDate { get; set; }
-    public string VisitType { get; set; } 
+    public string VisitType { get; set; }
     public string Description { get; set; }
     public string DoctorName { get; set; }
 }
@@ -19,10 +19,12 @@ class Program
 {
     static string filePath = "visits.txt";
     static List<PatientVisit> visits = new List<PatientVisit>();
-
-    public  static void Main()
+    static Stack<string> undo = new Stack<string>();
+    static Stack<string> redo = new Stack<string>();
+    public static void Main()
     {
-        LoadVisits();
+        Program program = new Program();
+        program.GetAllVisits();
 
         while (true)
         {
@@ -30,7 +32,6 @@ class Program
             Console.WriteLine("1. Add Visit\n2. Update Visit\n3. Delete Visit\n4. Search Visits\n5. Show Reports\n6. Exit");
             Console.Write("Select option: ");
             string input = Console.ReadLine();
-            Program program=new Program();
             switch (input)
             {
                 case "1": program.AddVisit(); break;
@@ -38,7 +39,7 @@ class Program
                 case "3": program.DeleteVisit(); break;
                 case "4": program.SearchVisits(); break;
                 case "5": program.ShowReports(); break;
-                case "6": program.SaveVisits(); return;
+                case "6": program.SaveAllVisits(); return;
                 default: Console.WriteLine("Invalid option!"); break;
             }
         }
@@ -47,61 +48,76 @@ class Program
     public void AddVisit()
     {
         PatientVisit visit = new PatientVisit();
-
-        visit.Id = visits.Any() ? visits.Max(v => v.Id) + 1 : 1;
-        Console.Write("Patient Name: ");
+        Console.WriteLine("Enter Patient Name : ");
         visit.PatientName = Console.ReadLine();
-        Console.Write("Visit Date (yyyy-mm-dd): ");
+        Console.WriteLine("Enter Visit Date in format yyyy-mm-dd: ");
         visit.VisitDate = DateTime.Parse(Console.ReadLine());
-        Console.Write("Visit Type (Consultation/Follow-up/Emergency): ");
+        Console.WriteLine("Enter Visit Type : ");
         visit.VisitType = Console.ReadLine();
-        Console.Write("Description: ");
+        Console.WriteLine("Enter Description : ");
         visit.Description = Console.ReadLine();
-        Console.Write("Doctor Name (optional): ");
+        Console.WriteLine("Enter Doctor Name : ");
         visit.DoctorName = Console.ReadLine();
-
+        visit.Id = visits.Count > 0 ? visits.Max(v => v.Id)+1 : 1;
         visits.Add(visit);
-        Console.WriteLine(" Visit added!");
-        SaveVisits();
+        SaveAllVisits();
+
+        undo.Push(JsonSerializer.Serialize(visit)+"|ADD");
+        if (undo.Count > 10)
+        {
+            undo = new Stack<string>(undo.ToArray()[..10]);
+        }
     }
 
     public void UpdateVisit()
     {
-        Console.Write("Enter Visit ID to update: ");
+        Console.WriteLine("Enter id of visit : ");
         int id = int.Parse(Console.ReadLine());
-        var visit = visits.Find(v => v.Id == id);
-        if (visit == null) 
-        { 
-            Console.WriteLine(" Visit not found.");
+        PatientVisit visit = visits.Find(v => v.Id == id);
+        if (visit == null)
+        {
+            Console.WriteLine("Visit not found in records");
             return;
         }
-
-        Console.Write("New Patient Name: ");
+        Console.Write("Enter Patient Name : ");
         visit.PatientName = Console.ReadLine();
-        Console.Write("New Visit Date (yyyy-mm-dd): ");
+        Console.Write("Enter Visit Date : ");
         visit.VisitDate = DateTime.Parse(Console.ReadLine());
-        Console.Write("New Visit Type: ");
+        Console.Write("Enter visit type : ");
         visit.VisitType = Console.ReadLine();
-        Console.Write("New Description: ");
+        Console.Write("Enter description : ");
         visit.Description = Console.ReadLine();
-        Console.Write("New Doctor Name: ");
-        visit.DoctorName = Console.ReadLine();
+        Console.Write("Enter Doctor Name (Optional) : ");
+        visit.Description = Console.ReadLine();
+        Console.WriteLine("Visit Updated");
+        undo.Push(JsonSerializer.Serialize(visit)+"|UPDATE");
+        if (undo.Count > 10)
+        {
+            undo = new Stack<string>(undo.ToArray()[..10]);
+        }
+        SaveAllVisits();
 
-        Console.WriteLine(" Visit updated.");
-        SaveVisits();
     }
-
     public void DeleteVisit()
     {
         Console.Write("Enter Visit ID to delete: ");
         int id = int.Parse(Console.ReadLine());
         var visit = visits.Find(v => v.Id == id);
-        if (visit == null) { Console.WriteLine(" Visit not found."); return; }
+        if (visit == null) 
+        { 
+            Console.WriteLine(" Visit not found."); 
+            return;
+        }
 
         visits.Remove(visit);
+        undo.Push(JsonSerializer.Serialize(visit) + "|DELETE");
+        if (undo.Count > 10)
+        {
+            undo = new Stack<string>(undo.ToArray()[..10]);
+        }
 
         Console.WriteLine(" Visit deleted.");
-        SaveVisits();
+        SaveAllVisits();
     }
 
     public void SearchVisits()
@@ -126,22 +142,39 @@ class Program
     public void ShowReports()
     {
         Console.WriteLine("Visit Count by Type:");
-        Dictionary<string, int> typeCount = new();
+        Dictionary<string, int> dic = new Dictionary<string, int>();
 
         foreach (var v in visits)
         {
-            if (!typeCount.ContainsKey(v.VisitType)) 
-                typeCount[v.VisitType] = 0;
-            typeCount[v.VisitType]++;
+            if (!dic.ContainsKey(v.VisitType))
+                dic[v.VisitType] = 0;
+            dic[v.VisitType]++;
         }
 
-        foreach (var kvp in typeCount)
-            Console.WriteLine($"{kvp.Key}: {kvp.Value}");
+        foreach (var d in dic)
+            Console.WriteLine($"{d.Key}: {d.Value}");
     }
 
-  
-  
-    static void LoadVisits()
+    //public void Undo()
+    //{
+    //    if (undo.Count == 0)
+    //    {
+    //        Console.WriteLine("Nothing to undo");
+    //        return;
+    //    }
+    //    string str = undo.Pop();
+    //    string[] parts = str.Split('|');
+    //    PatientVisit visit = JsonSerializer.Deserialize<PatientVisit>(parts[0]);
+    //    string operation = parts[1];
+    //    if (operation == "ADD")
+    //    {
+    //        visits.redo();
+    //    }
+    //}
+
+
+
+    public void GetAllVisits()
     {
         if (!File.Exists(filePath)) return;
 
@@ -153,7 +186,7 @@ class Program
         }
     }
 
-    public void SaveVisits()
+    public void SaveAllVisits()
     {
         try
         {
@@ -169,5 +202,5 @@ class Program
         }
     }
 
-   
+
 }
