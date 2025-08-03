@@ -13,7 +13,11 @@ class Program
 {
     static void Main(string[] args)
     {
-        IAuth auth=new Auth();
+        Console.WriteLine("===========================================");
+        Console.WriteLine("  Welcome to Patient Visit Management System");
+        Console.WriteLine("===========================================\n");
+        Console.WriteLine("Please login to continue.\n");
+        IAuth auth =new Auth();
         var (role, isAuthenticated) = auth.Authenticate();
         if (!isAuthenticated)
         {
@@ -28,15 +32,34 @@ class Program
 
         while (true)
         {
-            Console.WriteLine("\nChoose an option:");
+            Console.WriteLine("\n========== Main Menu ==========");
+
             if (role == UserRole.Admin)
             {
-                Console.WriteLine("1. Add\n2. Update\n3. Delete\n4. Search\n5. Report\n6. Undo\n7. Redo\n8. Filter/Sort\n9. Display Summary\n10. Generate Mock Data\n11. Exit");
+                Console.WriteLine("1.  Add New Visit");
+                Console.WriteLine("2.  Update Visit");
+                Console.WriteLine("3.  Delete Visit");
+                Console.WriteLine("4.  Search Visits");
+                Console.WriteLine("5.  Generate Report");
+                Console.WriteLine("6.  Undo Last Action");
+                Console.WriteLine("7.  Redo Last Action");
+                Console.WriteLine("8.  Filter / Sort Visits");
+                Console.WriteLine("9.  Display Summary");
+                Console.WriteLine("10. Generate Mock Data");
+                Console.WriteLine("11. Exit");
             }
             else
             {
-                Console.WriteLine("1. Add\n2. Search\n3. Report\n4. Exit");
+                Console.WriteLine("1.  Add New Visit");
+                Console.WriteLine("2.  Search Visits");
+                Console.WriteLine("3.  Generate Report");
+                Console.WriteLine("4.  Exit");
             }
+
+            Console.WriteLine("================================");
+            int maxOption = role == UserRole.Admin ? 11 : 4;
+            Console.Write($"Select an option (1 - {maxOption}): ");
+
             Console.Write("Enter your choice : ");
             string choice = Console.ReadLine();
 

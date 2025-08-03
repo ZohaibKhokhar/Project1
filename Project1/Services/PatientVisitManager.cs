@@ -29,57 +29,67 @@ namespace Project1.Services
         public void AddVisit()
         {
             PatientVisit visit = new PatientVisit();
-            Console.Write("Enter Patient Name : ");
+            Console.WriteLine("\n========== Add New Patient Visit ==========");
+
+            Console.Write("Patient Name                : ");
             visit.PatientName = Console.ReadLine();
-            Console.Write("Enter visit date and time (yyyy-MM-dd HH:mm): ");
+
+            Console.Write("Visit Date & Time (yyyy-MM-dd HH:mm): ");
             string inputDate = Console.ReadLine();
 
             DateTime visitDate;
             while (!DateTime.TryParseExact(inputDate, "yyyy-MM-dd HH:mm", null, System.Globalization.DateTimeStyles.None, out visitDate))
             {
-                Console.Write("Invalid format. Please enter again (yyyy-MM-dd HH:mm): ");
+                Console.Write("Invalid format. Re-enter (yyyy-MM-dd HH:mm): ");
                 inputDate = Console.ReadLine();
             }
-          
-            
-                if (_patientVisitRepository.IsVisitExistsInSameSlot(visit))
-                {
-                    Console.WriteLine("Warning: This patient has another visit within 30 minutes. Proceed? (Y/N)");
-                    string op = Console.ReadLine();
-                    if (op?.ToUpper() != "Y")
-                    {
-                        Console.WriteLine("Visit not added due to conflict.");
-                        _logger.LogActivity("Add Visit (Conflict)", false);
-                        return;
-                    }
-                }
-          
+
             visit.VisitDate = visitDate;
-            string  input;
-            do 
-            { 
-                Console.Write("Enter visit type (1. Consultation, 2. Follow-Up, 3. Emergency): ");
+
+            if (_patientVisitRepository.IsVisitExistsInSameSlot(visit))
+            {
+                Console.WriteLine("Warning: Another visit exists within 30 minutes.");
+                Console.Write("Do you still want to proceed? (Y/N): ");
+                string op = Console.ReadLine();
+                if (op?.ToUpper() != "Y")
+                {
+                    Console.WriteLine("Visit not added due to time conflict.");
+                    _logger.LogActivity("Add Visit (Conflict)", false);
+                    return;
+                }
+            }
+
+            string input;
+            do
+            {
+                Console.Write("Visit Type (1. Consultation, 2. Follow-Up, 3. Emergency): ");
                 input = Console.ReadLine();
-            } while (input!="1"&& input != "2" && input != "3" );
-            if (input=="1")
-                visit.VisitType = "Consultation";
-            else if (input == "2")
-                visit.VisitType = "Follow-Up";
-            else if (input == "3")
-                visit.VisitType = "Emergency";
-            Console.Write("Enter Description : ");
+            } while (input != "1" && input != "2" && input != "3");
+
+            visit.VisitType = input switch
+            {
+                "1" => "Consultation",
+                "2" => "Follow-Up",
+                "3" => "Emergency",
+                _ => ""
+            };
+
+            Console.Write("Description                : ");
             visit.Description = Console.ReadLine();
-            Console.Write("Enter Doctor Name : ");
+
+            Console.Write("Doctor Name                : ");
             visit.DoctorName = Console.ReadLine();
-            Console.Write("Enter Duration in Minutes: ");
+
+            Console.Write("Duration (minutes)         : ");
             visit.DurationInMinutes = int.Parse(Console.ReadLine());
 
-            visit.Fee = _loadFee.GetFee(visit.VisitType,visit.DurationInMinutes);
+            visit.Fee = _loadFee.GetFee(visit.VisitType, visit.DurationInMinutes);
 
             Console.WriteLine($"Fee calculated: {visit.Fee}");
-            _patientVisitRepository.AddVisit(visit);
 
+            _patientVisitRepository.AddVisit(visit);
             undo.Push(JsonSerializer.Serialize(visit) + "|ADD");
+
             if (undo.Count > 10)
                 undo = new Stack<string>(undo.ToArray()[..10]);
 
@@ -87,107 +97,139 @@ namespace Project1.Services
             _logger.LogActivity("Add Visit", true);
         }
 
+
         public void UpdateVisit()
         {
-            Console.WriteLine("Enter id of visit : ");
+            Console.WriteLine("\n========== Update Patient Visit ==========");
+
+            Console.Write("Visit ID to update         : ");
             int id = int.Parse(Console.ReadLine());
+
             PatientVisit visit = _patientVisitRepository.GetVisitById(id);
             if (visit == null)
             {
-                Console.WriteLine("Visit not found in records");
+                Console.WriteLine("Visit not found.");
                 return;
             }
+
             undo.Push(JsonSerializer.Serialize(visit) + "|UPDATE");
             if (undo.Count > 10)
-            {
                 undo = new Stack<string>(undo.ToArray()[..10]);
-            }
-            Console.Write("Enter Patient Name : ");
+
+            Console.Write("Patient Name                : ");
             visit.PatientName = Console.ReadLine();
-            Console.Write("Enter visit date and time (yyyy-MM-dd HH:mm): ");
+
+            Console.Write("Visit Date & Time (yyyy-MM-dd HH:mm): ");
             string inputDate = Console.ReadLine();
 
             DateTime visitDate;
             while (!DateTime.TryParseExact(inputDate, "yyyy-MM-dd HH:mm", null, System.Globalization.DateTimeStyles.None, out visitDate))
             {
-                Console.Write("Invalid format. Please enter again (yyyy-MM-dd HH:mm): ");
+                Console.Write("Invalid format. Re-enter (yyyy-MM-dd HH:mm): ");
                 inputDate = Console.ReadLine();
             }
-           
-                if (_patientVisitRepository.IsVisitExistsInSameSlot(visit))
+
+            visit.VisitDate = visitDate;
+
+            if (_patientVisitRepository.IsVisitExistsInSameSlot(visit))
+            {
+                Console.WriteLine("Warning: Another visit exists within 30 minutes.");
+                Console.Write("Do you still want to proceed? (Y/N): ");
+                string op = Console.ReadLine();
+                if (op?.ToUpper() != "Y")
                 {
-                    Console.WriteLine("Warning: This patient has another visit within 30 minutes. Proceed? (Y/N)");
-                    string op = Console.ReadLine();
-                    if (op?.ToUpper() != "Y")
-                    {
-                        Console.WriteLine("Visit not added due to conflict.");
-                        _logger.LogActivity("Add Visit (Conflict)", false);
-                        return;
-                    }
+                    Console.WriteLine("Visit not updated due to time conflict.");
+                    _logger.LogActivity("Update Visit (Conflict)", false);
+                    return;
                 }
+            }
 
             string input;
             do
             {
-                Console.Write("Enter visit type (1. Consultation, 2. Follow-Up, 3. Emergency): ");
+                Console.Write("Visit Type (1. Consultation, 2. Follow-Up, 3. Emergency): ");
                 input = Console.ReadLine();
             } while (input != "1" && input != "2" && input != "3");
-            if (input == "1")
-                visit.VisitType = "Consultation";
-            else if (input == "2")
-                visit.VisitType = "Follow-Up";
-            else if (input == "3")
-                visit.VisitType = "Emergency";
-            visit.VisitType = Console.ReadLine();
-            Console.Write("Enter description : ");
+
+            visit.VisitType = input switch
+            {
+                "1" => "Consultation",
+                "2" => "Follow-Up",
+                "3" => "Emergency",
+                _ => ""
+            };
+
+            Console.Write("Description                : ");
             visit.Description = Console.ReadLine();
-            Console.Write("Enter Doctor Name (Optional) : ");
+
+            Console.Write("Doctor Name (Optional)     : ");
             visit.DoctorName = Console.ReadLine();
-            Console.WriteLine("Visit Updated");
-            visit.Fee= _loadFee.GetFee(visit.VisitType,visit.DurationInMinutes);
+
+            Console.WriteLine("Visit updated successfully.");
+
+            visit.Fee = _loadFee.GetFee(visit.VisitType, visit.DurationInMinutes);
             _patientVisitRepository.UpdateVisit(visit);
-            _logger.LogActivity("UpdatedVisit",true);
+            _logger.LogActivity("UpdatedVisit", true);
         }
+
         public void DeleteVisit()
         {
-            Console.Write("Enter Visit ID to delete: ");
+            Console.WriteLine("\n========== Delete Patient Visit ==========");
+
+            Console.Write("Visit ID to delete         : ");
             int id = int.Parse(Console.ReadLine());
+
             var visit = _patientVisitRepository.GetVisitById(id);
             if (visit == null)
             {
-                Console.WriteLine(" Visit not found.");
+                Console.WriteLine("Visit not found.");
                 return;
             }
+
             visits.Remove(visit);
             undo.Push(JsonSerializer.Serialize(visit) + "|DELETE");
-            if (undo.Count > 10)
-            {
-                undo = new Stack<string>(undo.ToArray()[..10]);
-            }
 
-            Console.WriteLine(" Visit deleted.");
+            if (undo.Count > 10)
+                undo = new Stack<string>(undo.ToArray()[..10]);
+
             redo.Clear();
-            _logger.LogActivity("deletedVisit",true);
+            Console.WriteLine("Visit deleted successfully.");
+            _logger.LogActivity("deletedVisit", true);
         }
+
 
         public void SearchVisits()
         {
+            Console.WriteLine("\n========== Search Patient Visits ==========");
+
             Console.Write("Search by (Patient/Doctor/Date/Type): ");
             string key = Console.ReadLine().ToLower();
-            Console.Write("Enter search value: ");
+
+            Console.Write("Enter search value         : ");
             string value = Console.ReadLine().ToLower();
-            Console.WriteLine("\n---Search Results---\n");
+
+            Console.WriteLine("\n--- Search Results ---\n");
+
             List<PatientVisit> visits = _patientVisitRepository.GetAllVisits().ToList();
             foreach (var v in visits)
             {
-                if (key == "patient" && v.PatientName.ToLower().Contains(value) ||key == "doctor" && v.DoctorName.ToLower().Contains(value) ||key == "date" && v.VisitDate.ToString("yyyy-MM-dd") == value ||key == "type" && v.VisitType.ToLower() == value)
+                if (key == "patient" && v.PatientName.ToLower().Contains(value) ||
+                    key == "doctor" && v.DoctorName.ToLower().Contains(value) ||
+                    key == "date" && v.VisitDate.ToString("yyyy-MM-dd") == value ||
+                    key == "type" && v.VisitType.ToLower() == value)
                 {
-                    Console.WriteLine($"Patient Id : {v.Id} Patient Name : {v.PatientName},VisitType {v.VisitType},Visit Date and Time : {v.VisitDate:f},Doctor Name : Dr. {v.DoctorName}");
+                    Console.WriteLine($"Patient ID    : {v.Id}");
+                    Console.WriteLine($"Patient Name  : {v.PatientName}");
+                    Console.WriteLine($"Visit Type    : {v.VisitType}");
+                    Console.WriteLine($"Visit Date    : {v.VisitDate:f}");
+                    Console.WriteLine($"Doctor Name   : Dr. {v.DoctorName}");
+                    Console.WriteLine("-------------------------------------------");
                 }
             }
-            _logger.LogActivity("SearchedVisit",true);
-            Console.WriteLine("---------------------------\n");
+
+            _logger.LogActivity("SearchedVisit", true);
         }
+
 
         public void ShowSummary()
         {

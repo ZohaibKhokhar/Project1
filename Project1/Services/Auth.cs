@@ -14,9 +14,9 @@ namespace Project1.Services
         public (UserRole, bool) Authenticate()
         {
             User user = new User();
-            Console.Write("Enter username: ");
+            Console.Write("Enter Your UserName: ");
             user.Username = Console.ReadLine();
-            Console.Write("Enter password: ");
+            Console.Write("Enter Your Password: ");
             user.Password = Console.ReadLine();
 
             if (user.Username == "admin" && user.Password == "admin123")
