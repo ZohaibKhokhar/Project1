@@ -15,16 +15,17 @@ namespace Project1.Services
         private readonly IGenerateReport _reportGenerator;
         private readonly IPatientVisitRepository _patientVisitRepository;
         private readonly ILoadConsultationFee _loadFee;
-        static List<PatientVisit> visits = new List<PatientVisit>();
+        private readonly IMockData _mockData;
         static Stack<string> undo = new Stack<string>();
         static Stack<string> redo = new Stack<string>();
 
-        public PatientVisitManager(ILogger logger,IGenerateReport reportGenerator,IPatientVisitRepository patientVisitRepository,ILoadConsultationFee loadFee)
+        public PatientVisitManager(ILogger logger,IGenerateReport reportGenerator,IPatientVisitRepository patientVisitRepository,ILoadConsultationFee loadFee,IMockData mockData)
         {
             _logger=logger;
             _reportGenerator=reportGenerator;
             _patientVisitRepository=patientVisitRepository;
             _loadFee=loadFee;
+            _mockData=mockData;
         }
         public void AddVisit()
         {
@@ -96,7 +97,6 @@ namespace Project1.Services
             redo.Clear();
             _logger.LogActivity("Add Visit", true);
         }
-
 
         public void UpdateVisit()
         {
@@ -186,7 +186,7 @@ namespace Project1.Services
                 return;
             }
 
-            visits.Remove(visit);
+            _patientVisitRepository.DeleteVisit(id);
             undo.Push(JsonSerializer.Serialize(visit) + "|DELETE");
 
             if (undo.Count > 10)
@@ -196,7 +196,6 @@ namespace Project1.Services
             Console.WriteLine("Visit deleted successfully.");
             _logger.LogActivity("deletedVisit", true);
         }
-
 
         public void SearchVisits()
         {
@@ -230,24 +229,16 @@ namespace Project1.Services
             _logger.LogActivity("SearchedVisit", true);
         }
 
-
         public void ShowSummary()
         {
             Console.Write("Enter id of Visit: ");
-            int id=int.Parse(Console.ReadLine());
-            var visit = _patientVisitRepository.GetVisitById(id);
-            if (visit == null)
-            {
-                Console.WriteLine("Visit Not Found");
-                return;
-            }
-            Console.WriteLine("\n---Visit Summary---\n");
-            Console.Write($"Patient Name :{visit.PatientName} \nDateTime :{visit.VisitDate}\n Visit Type : {visit.VisitType}\n Visit Description : {visit.Description}\n Doctor Name : {visit.DoctorName}\n Duration :{visit.DurationInMinutes}minutes\n Visit Fee:{visit.Fee}");
+            int id = int.Parse(Console.ReadLine());
+            _reportGenerator.DisplaySummary(_patientVisitRepository.GetVisitById(id));
         }
 
         public void ShowReports()
         {
-            _reportGenerator.DisplayVisitReport(visits);
+            _reportGenerator.DisplayVisitReport(_patientVisitRepository.GetAllVisits());
         }
 
         public void Undo()
@@ -286,11 +277,12 @@ namespace Project1.Services
                 _patientVisitRepository.AddVisit(visit);
                 redo.Push(str);
             }
-            Console.WriteLine("Undo Completed");
+
+            Console.WriteLine("Undo operation completed successfully.\n");
             _logger.LogActivity("Undo",true);
         }
         public void Redo()
-        {
+        { 
             if (redo.Count == 0)
             {
                 Console.WriteLine("Nothing to undo");
@@ -307,7 +299,7 @@ namespace Project1.Services
             }
             else if (operation == "DELETE")
             {
-               visits.Remove(visits.Find(v => v.Id == visit.Id));
+               _patientVisitRepository.DeleteVisit(visit.Id);
                 undo.Push(str);
             }
             else if (operation == "UPDATE")
@@ -325,33 +317,13 @@ namespace Project1.Services
                 }
                 undo.Push(JsonSerializer.Serialize(v) + "|UPDATE");
             }
-            Console.WriteLine("Redo Completed");
+            Console.WriteLine("Redo operation completed successfully.\n");
             _logger.LogActivity("Redo",true);
         }
 
         public void GenerateMockData()
         {
-            List<PatientVisit> visits = new List<PatientVisit>();
-            string[] patientNames = { "Ali", "Zubair", "Zohaib", "Zeeshan", "Bilal", "Khalid" };
-            string[] types = { "Consultation,Follow-Up", "Emergency" };
-            int[] fee = { 500,300,1000};
-            int[] duration = { 30, 40, 50, 60 };
-            string[] doctorNames = { "Ali", "Zubair", "Zohaib", "Zeeshan", "Bilal", "Khalid" };
-            Random rand = new Random();
-            for (int i = 0; i < 300; i++)
-            {
-                visits.Add(new PatientVisit()
-                {
-                    PatientName = patientNames[rand.Next(patientNames.Length)],
-                    VisitDate = DateTime.Now,
-                    Id = visits.Count > 0 ? visits.Max(v => v.Id) + 1 : 1,
-                    VisitType = types[rand.Next(types.Length)],
-                    DoctorName = doctorNames[rand.Next(doctorNames.Length)],
-                    Description = "this is a patient",
-                    Fee = fee[rand.Next(fee.Length)],
-                    DurationInMinutes = duration[rand.Next(duration.Length)]
-                }); ;
-            }
+            List<PatientVisit> visits = _mockData.GenerateMockData();
             _patientVisitRepository.SaveAllVisits(visits);
             _logger.LogActivity("MockedVisits",true);
         }

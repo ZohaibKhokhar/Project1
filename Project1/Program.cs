@@ -28,7 +28,8 @@ class Program
         IGenerateReport generateReport = new GenerateReport();
         IPatientVisitRepository patientVisitRepository = new PatientVisitRepository();
         ILoadConsultationFee loadFee = new LoadConsultationFee();
-        IPatientVisitManager manager = new PatientVisitManager(logger,generateReport,patientVisitRepository,loadFee);
+        IMockData mockData = new MockData();
+        IPatientVisitManager manager = new PatientVisitManager(logger,generateReport,patientVisitRepository,loadFee,mockData);
 
         while (true)
         {

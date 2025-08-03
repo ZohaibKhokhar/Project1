@@ -13,7 +13,7 @@ namespace Project1.Services
     {
         public void DisplayVisitReport(List<PatientVisit> visits)
         {
-            Console.WriteLine("Visit Count by Type (Last 7 Days):");
+            Console.WriteLine("\n========== Visit Report (Last 7 Days) ==========");
 
             DateTime days = DateTime.Now.AddDays(-7);
             var recentVisits = visits.Where(v => v.VisitDate >= days).ToList();
@@ -33,8 +33,28 @@ namespace Project1.Services
                 dic[v.VisitType]++;
             }
 
+            Console.WriteLine("\nVisit Count by Type:");
             foreach (var d in dic)
-                Console.WriteLine($"{d.Key}: {d.Value}");
+                Console.WriteLine($"- {d.Key}: {d.Value}");
+        }
+
+        public void DisplaySummary(PatientVisit visit)
+        {
+            if (visit == null)
+            {
+                Console.WriteLine("Visit not found.");
+                return;
+            }
+
+            Console.WriteLine("\n========== Visit Summary ==========\n");
+
+            Console.WriteLine($"Patient Name       : {visit.PatientName}");
+            Console.WriteLine($"Visit Date & Time  : {visit.VisitDate}");
+            Console.WriteLine($"Visit Type         : {visit.VisitType}");
+            Console.WriteLine($"Description        : {visit.Description}");
+            Console.WriteLine($"Doctor Name        : {visit.DoctorName}");
+            Console.WriteLine($"Duration           : {visit.DurationInMinutes} minutes");
+            Console.WriteLine($"Fee                : {visit.Fee}");
         }
     }
 }

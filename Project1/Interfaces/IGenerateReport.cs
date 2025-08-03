@@ -10,5 +10,7 @@ namespace Project1.Interfaces
     public interface IGenerateReport
     {
         public void DisplayVisitReport(List<PatientVisit> visits);
+
+        public void DisplaySummary(PatientVisit visit);
     }
 }
